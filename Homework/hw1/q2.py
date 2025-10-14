@@ -17,6 +17,11 @@ def server(params, opt, world):
     #                                                                   #
     #                                                                   #
 
+    for i in range(1, world):
+        recv_buf = torch.zeros_like(agg)
+        dist.recv(recv_buf, src=i)
+        agg += recv_buf
+
     synced_grads = _unflatten_dense_tensors(agg, [p.grad for p in params])
     # ---- set averaged grads locally & step ----
     for g, s in zip([p.grad for p in params], synced_grads):
@@ -30,17 +35,19 @@ def server(params, opt, world):
     # your code here: send packed 1-D parameter tensor to all workers   #
     #                                                                   #
     #                                                                   #
+    for i in range(1, world):
+        dist.send(flat_param, dst=i)
 
 def worker(params):
     flat_grad = _flatten_dense_tensors([p.grad for p in params]).contiguous()
     # ---- push grads to server ----
-
+    
     #                                                                   #
     #                                                                   #
     # your code here: send packed 1-D gradient to server
     #                                                                   #
     #                                                                   #
-
+    dist.send(flat_grad, dst=0)
     # ---- receive updated params, write into local model ----
     
     #                                                                   #
@@ -48,8 +55,9 @@ def worker(params):
     # your code here: please get correct 1-D packed parameter from server
     #           And then unpacked it and store in synced_params
     #                                                                   #
-    synced_params = None #you should  assign correct value for synced_params#
-
+    recv_buf = torch.zeros_like(flat_grad)
+    dist.recv(recv_buf, src=0)
+    synced_params = _unflatten_dense_tensors(recv_buf, [p.data for p in params]) #you should  assign correct value for synced_params#s
 
     # ---- syncronize the parameters ----
     for p, s in zip(params, synced_params):
