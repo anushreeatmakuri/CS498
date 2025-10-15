@@ -22,10 +22,10 @@ def server(params, opt, world):
     #     dist.recv(recv_buf, src=i)
     #     agg += recv_buf
 
-    dist.reduce(flat_grad, dst=0, op=dist.ReduceOp.SUM)
-    agg.copy_(flat_grad)
-
-    # agg.div_(world)
+    for i in range(1, world):
+        recv_buf = torch.zeros_like(agg)
+        dist.recv(recv_buf, src=i)
+        agg += recv_buf
 
     synced_grads = _unflatten_dense_tensors(agg, [p.grad for p in params])
     # ---- set averaged grads locally & step ----
@@ -40,7 +40,8 @@ def server(params, opt, world):
     # your code here: send packed 1-D parameter tensor to all workers   #
     #                                                                   #
     #                                                                   #
-    dist.broadcast(flat_param, src=0)
+    for i in range(1, world):
+        dist.send(flat_param, dst=i)
 
 def worker(params):
     flat_grad = _flatten_dense_tensors([p.grad for p in params]).contiguous()
@@ -51,8 +52,7 @@ def worker(params):
     # your code here: send packed 1-D gradient to server
     #                                                                   #
     #                                                                   #
-    # dist.send(flat_grad, dst=0)
-    dist.reduce(flat_grad, dst=0, op=dist.ReduceOp.SUM)
+    dist.send(flat_grad, dst=0)
 
     # ---- receive updated params, write into local model ----
     
