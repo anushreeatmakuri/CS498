@@ -16,7 +16,7 @@ def reduce_scatter(chunks, tmp, world, rank, left, right):
         send_chunk_idx = (rank - i) % world
         recv_chunk_idx = (rank - i - 1) % world
         
-        send_req = dist.isend(chunks[send_chunk_idx], dst=left)   # send to left
+        send_req = dist.isend(chunks[send_chunk_idx].contiguous(), dst=left)   # send to left
         recv_req = dist.irecv(tmp, src=right)  
         
         send_req.wait()
@@ -85,6 +85,6 @@ def ring_allreduce_(tensor: torch.Tensor, world_size = None, rankid = None):
     all_gather(chunks, tmp, None, world, rank, left, right)
 
     # stitch & unpad  
-    flat /= world
-    tensor.view(-1).copy_(flat[:n])
+    padded_flat /= world
+    tensor.view(-1).copy_(padded_flat[:n])
     return
