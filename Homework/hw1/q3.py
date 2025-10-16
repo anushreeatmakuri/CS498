@@ -61,7 +61,7 @@ def ring_allreduce_(tensor: torch.Tensor, world_size = None, rankid = None):
     #                                                                   #
     #                                                                   #
     #So, fill zeros at the end of flat to generate padded_flat
-    padded_size = chunk * world
+    padded_size = chunk * world - n
     padded_flat = torch.zeros(padded_size, dtype=flat.dtype, device=flat.device)
     padded_flat[:n] = flat
     # modify this line and fill correct value into padded_flat
