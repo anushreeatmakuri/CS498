@@ -82,6 +82,7 @@ def ring_allreduce_(tensor: torch.Tensor, world_size = None, rankid = None):
     # You may adjust the function signature (input structure) of `reduce_scatter` and `all_gather` if needed.
     tmp = torch.zeros_like(chunks[0])
     reduce_scatter(chunks, tmp, world, rank, left, right)
+    tmp = torch.zeros_like(chunks[0])
     all_gather(chunks, tmp, None, world, rank, left, right)
 
     # stitch & unpad  
