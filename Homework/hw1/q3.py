@@ -62,12 +62,8 @@ def ring_allreduce_(tensor: torch.Tensor, world_size = None, rankid = None):
     #                                                                   #
     #So, fill zeros at the end of flat to generate padded_flat
     padded_size = chunk * world
-    pad_len = padded_size - n
-    if pad_len > 0:
-        pad = torch.zeros(pad_len, dtype=flat.dtype, device=flat.device)
-        padded_flat = torch.cat([flat, pad])
-    else:
-        padded_flat = flat
+    padded_flat = torch.zeros(padded_size, dtype=flat.dtype, device=flat.device)
+    padded_flat[:n] = flat
     # modify this line and fill correct value into padded_flat
     chunks = [padded_flat[i*chunk:(i+1)*chunk] for i in range(world)]
 
@@ -85,6 +81,8 @@ def ring_allreduce_(tensor: torch.Tensor, world_size = None, rankid = None):
     all_gather(chunks, tmp_gather, None, world, rank, left, right)
 
     # stitch & unpad  
+    padded_flat = torch.cat(chunks)
+    flat.copy_(padded_flat[:n])
     flat /= world
-    tensor.view(-1).copy_(flat[:n])
+    tensor.view(-1).copy_(flat)
     return
