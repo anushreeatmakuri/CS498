@@ -15,8 +15,8 @@ def reduce_scatter(chunks, tmp, world, rank, left, right):
         send_chunk_idx = (rank - i) % world
         recv_chunk_idx = (rank - i - 1) % world
         
-        send_req = dist.isend(chunks[send_chunk_idx], dst=left)
-        recv_req = dist.irecv(tmp, src=right)  
+        send_req = dist.isend(chunks[send_chunk_idx], dst=right)
+        recv_req = dist.irecv(tmp, src=left)  
         
         send_req.wait()
         recv_req.wait()
