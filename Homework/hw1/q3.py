@@ -11,13 +11,12 @@ def reduce_scatter(chunks, tmp, world, rank, left, right):
     # your code here: follow slides instruction: do counter-clockwise iteration
     #                                                                   #
     #                                                                   #
-    
     for i in range(world - 1):
         send_chunk_idx = (rank - i) % world
         recv_chunk_idx = (rank - i - 1) % world
         
-        send_req = dist.isend(chunks[send_chunk_idx].contiguous(), dst=right)
-        recv_req = dist.irecv(tmp, src=left)  
+        send_req = dist.isend(chunks[send_chunk_idx], dst=left)
+        recv_req = dist.irecv(tmp, src=right)  
         
         send_req.wait()
         recv_req.wait()
@@ -35,8 +34,8 @@ def all_gather(chunks, tmp, current, world, rank, left, right):
         send_chunk_idx = (rank - i) % world
         recv_chunk_idx = (rank - i - 1) % world
         
-        send_req = dist.isend(chunks[send_chunk_idx], dst=right)
-        recv_req = dist.irecv(tmp, src=left)
+        send_req = dist.isend(chunks[send_chunk_idx], dst=left)
+        recv_req = dist.irecv(tmp, src=right)
         
         send_req.wait()
         recv_req.wait()
@@ -80,10 +79,10 @@ def ring_allreduce_(tensor: torch.Tensor, world_size = None, rankid = None):
     #                                                                   #
     #we provide the reduce_scatter and all_gather func prototype for you
     # You may adjust the function signature (input structure) of `reduce_scatter` and `all_gather` if needed.
-    tmp = torch.zeros_like(chunks[0])
-    reduce_scatter(chunks, tmp, world, rank, left, right)
-    tmp = torch.zeros_like(chunks[0])
-    all_gather(chunks, tmp, None, world, rank, left, right)
+    tmp_reduce = torch.zeros_like(chunks[0])
+    tmp_gather = torch.zeros_like(chunks[0])
+    reduce_scatter(chunks, tmp_reduce, world, rank, left, right)
+    all_gather(chunks, tmp_gather, None, world, rank, left, right)
 
     # stitch & unpad  
     flat /= world
